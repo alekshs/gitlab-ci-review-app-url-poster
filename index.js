@@ -51,8 +51,19 @@ module.exports = app => {
   })
 
   app.on(['pull_request.opened', 'pull_request.edited', 'pull_request.synchronize', 'pull_request.reopened', 'check_run.completed', 'check_suite.completed'], async context => {
+    let ref;
+    
+    // Check if payload comes from a check_run or a pull_request
+    if (context.payload.pull_requests && context.payload.pull_requests.length) {
+      // handle checks
+      ref = context.payload.pull_requests[0].head.ref;
+    } else {
+      // handle pull request
+      ref = context.payload.pull_request.head.ref
+    }
+
     let project = await getGitlabProject(context.payload.repository.name)
-    let environment = await getGitlabEnvironment(project, context.payload.pull_request.head.ref)
+    let environment = await getGitlabEnvironment(project, ref)
     // If the environment exists mark it as deployed
     if (environment !== null && environment.external_url !== undefined && environment.external_url !== '') {
       // Probot API note: context.repo() => { username: 'hiimbex', repo: 'testing-things' }
